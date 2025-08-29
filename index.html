@@ -5,7 +5,7 @@
   <title>Mini DOORS</title>
   <style>
     body {
-      background: black;
+      background: #222;
       color: white;
       font-family: Arial, sans-serif;
       text-align: center;
@@ -18,7 +18,7 @@
       margin: auto;
       border: 3px solid white;
       position: relative;
-      background: #111;
+      background: #444; /* стало светлее, видно объекты */
       overflow: hidden;
     }
     #player {
@@ -41,174 +41,88 @@
     }
     #cabinet {
       width: 60px;
-      height
-      </head>
+      height: 100px;
+      background: sienna;
+      position: absolute;
+      bottom: 0;
+      left: 20px;
+      cursor: pointer;
+      border: 2px solid black;
+    }
+    #info {
+      margin-top: 10px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
 <body>
-  <h2>DOORS Mini (40 комнат)</h2>
-  <canvas id="game" width="600" height="400"></canvas>
-  <p>Стрелки (ПК) или кнопки (моб). Нажми H / «Шкаф» чтобы спрятаться!</p>
-
-  <div id="controls">
-    <button onclick="press('ArrowUp')">▲</button><br>
-    <button onclick="press('ArrowLeft')">◀</button>
-    <button onclick="press('ArrowDown')">▼</button>
-    <button onclick="press('ArrowRight')">▶</button><br>
-    <button onclick="toggleCloset()">Шкаф</button>
+  <h1>DOORS (Mini)</h1>
+  <div id="game">
+    <div id="player"></div>
+    <div id="monster"></div>
+    <div id="cabinet" onclick="toggleCabinet()" title="Кликни, чтобы спрятаться"></div>
+  </div>
+  <div id="info">
+    <p id="room">Комната: 1 / 10</p>
+    <p id="status">Статус: Жив</p>
+    <button onclick="nextRoom()">➡ В следующую комнату</button>
   </div>
 
   <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-
-    let player = { x: 50, y: 180, size: 20, speed: 3, hiding: false };
-    let key = { x: 300, y: 100, size: 15, taken: false };
-    let door = { x: 550, y: 150, w: 40, h: 100, open: false };
-    let closet = { x: 200, y: 150, w: 40, h: 100 };
-    let monster = { x: 400, y: 300, size: 25, speed: 1.5, active: false };
-    let rush = null; // Rush монстр
-
-    let keys = {};
-    let gameOver = false;
-    let win = false;
     let room = 1;
+    let hiding = false;
+    let alive = true;
 
-    document.addEventListener("keydown", e => {
-      keys[e.key] = true;
-      if (e.key === "h" || e.key === "H") toggleCloset();
-    });
-    document.addEventListener("keyup", e => keys[e.key] = false);
+    const player = document.getElementById("player");
+    const monster = document.getElementById("monster");
+    const roomText = document.getElementById("room");
+    const statusText = document.getElementById("status");
 
-    function press(k) {
-      keys[k] = true;
-      setTimeout(() => keys[k] = false, 150);
-    }
-
-    function toggleCloset() {
-      // можно спрятаться только если стоишь в шкафу
-      if (player.x < closet.x + closet.w &&
-          player.x + player.size > closet.x &&
-          player.y < closet.y + closet.h &&
-          player.y + player.size > closet.y) {
-        player.hiding = !player.hiding;
-      } else {
-        player.hiding = false; // фикс бага
-      }
-    }
-
-    function drawPlayer() {
-      ctx.fillStyle = player.hiding ? "blue" : "cyan";
-      ctx.fillRect(player.x, player.y, player.size, player.size);
-    }
-
-    function drawKey() {
-      if (!key.taken) {
-        ctx.fillStyle = "yellow";
-        ctx.fillRect(key.x, key.y, key.size, key.size);
-      }
-    }
-
-    function drawDoor() {
-      ctx.fillStyle = door.open ? "green" : "brown";
-      ctx.fillRect(door.x, door.y, door.w, door.h);
-    }
-
-    function drawCloset() {
-      ctx.fillStyle = "gray";
-      ctx.fillRect(closet.x, closet.y, closet.w, closet.h);
-    }
-
-    function drawMonster() {
-      if (monster.active) {
-        ctx.fillStyle = "red";
-        ctx.fillRect(monster.x, monster.y, monster.size, monster.size);
-      }
-    }
-
-    function drawRush() {
-      if (rush) {
-        ctx.fillStyle = "purple";
-        ctx.fillRect(rush.x, rush.y, rush.w, rush.h);
-      }
-    }
-
-    function movePlayer() {
-      if (keys["ArrowUp"]) player.y -= player.speed;
-      if (keys["ArrowDown"]) player.y += player.speed;
-      if (keys["ArrowLeft"]) player.x -= player.speed;
-      if (keys["ArrowRight"]) player.x += player.speed;
-    }
-
-    function moveMonster() {
-      if (!monster.active) return;
-      if (player.hiding) return;
-      let dx = player.x - monster.x;
-      let dy = player.y - monster.y;
-      let dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > 0) {
-        monster.x += (dx / dist) * monster.speed;
-        monster.y += (dy / dist) * monster.speed;
-      }
-    }
-
-    function moveRush() {
-      if (!rush) return;
-      rush.x += rush.speed;
-      if (rush.x > canvas.width) rush = null;
-    }
-
-    function checkCollisions() {
-      // ключ
-      if (!key.taken &&
-          player.x < key.x + key.size &&
-          player.x + player.size > key.x &&
-          player.y < key.y + key.size &&
-          player.y + player.size > key.y) {
-        key.taken = true;
-      }
-
-      // дверь
-      if (key.taken &&
-          player.x < door.x + door.w &&
-          player.x + player.size > door.x &&
-          player.y < door.y + door.h &&
-          player.y + player.size > door.y) {
-        door.open = true;
-        room++;
-        if (room > 40) {
-          win = true;
-        } else {
-          nextRoom();
-        }
-      }
-
-      // обычный монстр
-      if (monster.active && !player.hiding &&
-          player.x < monster.x + monster.size &&
-          player.x + player.size > monster.x &&
-          player.y < monster.y + monster.size &&
-          player.y + player.size > monster.y) {
-        gameOver = true;
-      }
-
-      // Rush монстр
-      if (rush && !player.hiding &&
-          player.x < rush.x + rush.w &&
-          player.x + player.size > rush.x &&
-          player.y < rush.y + rush.h &&
-          player.y + player.size > rush.y) {
-        gameOver = true;
-      }
+    function toggleCabinet() {
+      if (!alive) return;
+      hiding = !hiding;
+      player.style.background = hiding ? "gray" : "cyan";
     }
 
     function nextRoom() {
-      player.x = 50; player.y = 180;
-      key = { x: 100 + Math.random()*400, y: 50+Math.random()*300, size: 15, taken: false };
-      door = { x: 550, y: 150, w: 40, h: 100, open: false };
-      closet = { x: 100 + Math.random()*300, y: 150, w: 40, h: 100 };
-      monster = { x: 400, y: 300, size: 25, speed: 1.2+room*0.2, active: Math.random()<0.5 };
-      rush = null;
+      if (!alive) return;
+      if (room >= 10) {
+        statusText.innerText = "🎉 Ты прошёл все комнаты!";
+        return;
+      }
+      room++;
+      roomText.innerText = "Комната: " + room + " / 10";
+      spawnMonster();
+    }
 
-      // Rush появляется на 10, 20, 30, 40
-      if (room % 10 === 0) {
-        monster.active = f
-    
+    function spawnMonster() {
+      monster.style.display = "none";
+      monster.style.left = "-50px";
+
+      if (room === 5 || room === 10) {
+        monster.style.display = "block";
+        let pos = -50;
+        const interval = setInterval(() => {
+          pos += 10;
+          monster.style.left = pos + "px";
+
+          if (pos > 400) {
+            clearInterval(interval);
+            monster.style.display = "none";
+            if (!hiding) {
+              alive = false;
+              statusText.innerText = "💀 Тебя поймал монстр!";
+              player.style.background = "red";
+            }
+          }
+        }, 100);
+      }
+    }
+  </script>
+</body>
+</html>
