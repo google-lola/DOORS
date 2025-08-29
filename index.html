@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>DOORS Mini (5 дверей)</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      overflow: hidden;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #game {
+      border: 2px solid white;
+      background: #111;
+      display: block;
+      margin: auto;
+    }
+    #controls {
+      margin-top: 10px;
+    }
+    button {
+      font-size: 18px;
+      margin: 5px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #444;
+      color: white;
+    }
+    button:active {
+      background: #888;
+    }
+  </style>
+</head>
+<body>
+  <h2>DOORS Mini (5 дверей)</h2>
+  <canvas id="game" width="600" height="400"></canvas>
+  <p>Управление: стрелки (ПК) или кнопки (мобильные). Нажми H / кнопку «Шкаф» чтобы спрятаться!</p>
+
+  <div id="controls">
+    <button onclick="keys['ArrowUp']=true; setTimeout(()=>keys['ArrowUp']=false,150)">▲</button><br>
+    <button onclick="keys['ArrowLeft']=true; setTimeout(()=>keys['ArrowLeft']=false,150)">◀</button>
+    <button onclick="keys['ArrowDown']=true; setTimeout(()=>keys['ArrowDown']=false,150)">▼</button>
+    <button onclick="keys['ArrowRight']=true; setTimeout(()=>keys['ArrowRight']=false,150)">▶</button><br>
+    <button onclick="toggleCloset()">Шкаф</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    let player = { x: 50, y: 180, size: 20, speed: 3, hiding: false };
+    let key = { x: 300, y: 100, size: 15, taken: false };
+    let door = { x: 550, y: 150, w: 40, h: 100, open: false };
+    let closet = { x: 200, y: 150, w: 40, h: 100 }; 
+    let monster = { x: 400, y: 300, size: 25, speed: 1.5, active: false };
+
+    let keys = {};
+    let gameOver = false;
+    let win = false;
+    let room = 1; // текущая комната (1–5)
+
+    document.addEventListener("keydown", e => {
+      keys[e.key] = true;
+      if (e.key === "h" || e.key === "H") toggleCloset();
+    });
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    function toggleCloset() {
+      // прятаться в шкафу
+      if (player.x < closet.x + closet.w &&
+          player.x + player.size > closet.x &&
+          player.y < closet.y + closet.h &&
+          player.y + player.size > closet.y) {
+        player.hiding = !player.hiding;
+      }
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = player.hiding ? "blue" : "cyan";
+      ctx.fillRect(player.x, player.y, player.size, player.size);
+    }
+
+    function drawKey() {
+      if (!key.taken) {
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(key.x, key.y, key.size, key.size);
+      }
+    }
+
+    function drawDoor() {
+      ctx.fillStyle = door.open ? "green" : "brown";
+      ctx.fillRect(door.x, door.y, door.w, door.h);
+    }
+
+    function drawCloset() {
+      ctx.fillStyle = "gray";
+      ctx.fillRect(closet.x, closet.y, closet.w, closet.h);
+    }
+
+    function drawMonster() {
+      if (monster.active) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(monster.x, monster.y, monster.size, monster.size);
+      }
+    }
+
+    function movePlayer() {
+      if (keys["ArrowUp"]) player.y -= player.speed;
+      if (keys["ArrowDown"]) player.y += player.speed;
+      if (keys["ArrowLeft"]) player.x -= player.speed;
+      if (keys["ArrowRight"]) player.x += player.speed;
+    }
+
+    function moveMonster() {
+      if (!monster.active) return;
+      if (player.hiding) return; // если спрятался — монстр не видит
+      let dx = player.x - monster.x;
+      let dy = player.y - monster.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > 0) {
+        monster.x += (dx / dist) * monster.speed;
+        monster.y += (dy / dist) * monster.speed;
+      }
+    }
+
+    function checkCollisions() {
+      // взять ключ
+      if (!key.taken &&
+          player.x < key.x + key.size &&
+          player.x + player.size > key.x &&
+          player.y < key.y + key.size &&
+          player.y + player.size > key.y) {
+        key.taken = true;
+      }
+
+      // открыть дверь
+      if (key.taken &&
+          player.x < door.x + door.w &&
+          player.x + player.size > door.x &&
+          player.y < door.y + door.h &&
+          player.y + player.size > door.y) {
+        door.open = true;
+        room++;
+        if (room > 5) {
+          win = true;
+        } else {
+          nextRoom();
+        }
+      }
+
+      // столкновение с монстром
+      if (monster.active && !player.hiding &&
+          player.x < monster.x + monster.size &&
+          player.x + player.size > monster.x &&
+          player.y < monster.y + monster.size &&
+          player.y + player.size > monster.y) {
+        gameOver = true;
+      }
+    }
+
+    function nextRoom() {
+      // переход в следующую комнату
+      player.x = 50; player.y = 180;
+      key = { x: 100 + Math.random()*400, y: 50+Math.random()*300, size: 15, taken: false };
+      door = { x: 550, y: 150, w: 40, h: 100, open: false };
+      closet = { x: 100 + Math.random()*300, y: 150, w: 40, h: 100 };
+      monster = { x: 400, y: 300, size: 25, speed: 1.2+room*0.2, active: Math.random()<0.7 };
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!gameOver && !win) {
+        movePlayer();
+        moveMonster();
+        checkCollisions();
+
+        drawKey();
+        drawDoor();
+        drawCloset();
+        drawPlayer();
+        drawMonster();
+
+        ctx.fillStyle = "white";
+        ctx.fillText("Комната: " + room + "/5", 20, 20);
+
+        requestAnimationFrame(gameLoop);
+      } else {
+        ctx.fillStyle = "white";
+        ctx.font = "30px Arial";
+        if (win) {
+          ctx.fillText("Ты прошёл все 5 дверей!", 150, 200);
+        } else {
+          ctx.fillText("Тебя поймал монстр!", 160, 200);
+        }
+      }
+    }
+
+    nextRoom();
+    gameLoop();
+  </script>
+</body>
+</html>
