@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Mini DOORS</title>
+  <title>Mini DOORS (моб+ПК)</title>
   <style>
     body {
       background: #222;
@@ -10,7 +10,7 @@
       font-family: Arial, sans-serif;
       text-align: center;
       margin: 0;
-      padding: 20px;
+      padding: 10px;
     }
     #game {
       width: 400px;
@@ -18,7 +18,7 @@
       margin: auto;
       border: 3px solid white;
       position: relative;
-      background: #444; /* стало светлее, видно объекты */
+      background: #444;
       overflow: hidden;
     }
     #player {
@@ -53,15 +53,18 @@
       margin-top: 10px;
     }
     button {
-      margin: 5px;
-      padding: 10px 20px;
+      margin: 3px;
+      padding: 10px 15px;
       font-size: 16px;
       cursor: pointer;
+    }
+    .controls {
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>DOORS (Mini)</h1>
+  <h1>DOORS Mini (моб+ПК)</h1>
   <div id="game">
     <div id="player"></div>
     <div id="monster"></div>
@@ -73,56 +76,8 @@
     <button onclick="nextRoom()">➡ В следующую комнату</button>
   </div>
 
-  <script>
-    let room = 1;
-    let hiding = false;
-    let alive = true;
-
-    const player = document.getElementById("player");
-    const monster = document.getElementById("monster");
-    const roomText = document.getElementById("room");
-    const statusText = document.getElementById("status");
-
-    function toggleCabinet() {
-      if (!alive) return;
-      hiding = !hiding;
-      player.style.background = hiding ? "gray" : "cyan";
-    }
-
-    function nextRoom() {
-      if (!alive) return;
-      if (room >= 10) {
-        statusText.innerText = "🎉 Ты прошёл все комнаты!";
-        return;
-      }
-      room++;
-      roomText.innerText = "Комната: " + room + " / 10";
-      spawnMonster();
-    }
-
-    function spawnMonster() {
-      monster.style.display = "none";
-      monster.style.left = "-50px";
-
-      if (room === 5 || room === 10) {
-        monster.style.display = "block";
-        let pos = -50;
-        const interval = setInterval(() => {
-          pos += 10;
-          monster.style.left = pos + "px";
-
-          if (pos > 400) {
-            clearInterval(interval);
-            monster.style.display = "none";
-            if (!hiding) {
-              alive = false;
-              statusText.innerText = "💀 Тебя поймал монстр!";
-              player.style.background = "red";
-            }
-          }
-        }, 100);
-      }
-    }
-  </script>
-</body>
-</html>
+  <div class="controls">
+    <button onclick="movePlayer('up')">▲</button><br>
+    <button onclick="movePlayer('left')">◀</button>
+    <button onclick="movePlayer('down')">▼</b
+                                            
